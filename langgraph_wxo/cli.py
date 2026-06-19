@@ -11,6 +11,7 @@ import json as jsonlib
 import platform
 import shutil
 import subprocess
+from enum import StrEnum
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
@@ -21,8 +22,9 @@ from packaging.version import Version
 from rich.console import Console
 from rich.table import Table
 
-from .compat import MIN_LANGGRAPH_VERSION, get_spec, known_spec_versions
+from .compat import DEFAULT_MODEL_ALIAS, MIN_LANGGRAPH_VERSION, get_spec, known_spec_versions
 from .config import LoadError, load_project
+from .templates import TemplateError, UnknownTemplateError, render_template
 from .validate import Report, Severity, run_all
 from .validate.rules.limits import ELIGIBILITY_MESSAGE
 from .version import __version__
@@ -49,6 +51,17 @@ _SEVERITY_STYLE = {
 }
 
 
+class TemplateChoice(StrEnum):
+    react_tools = "react-tools"
+    minimal = "minimal"
+
+
+class CheckpointerChoice(StrEnum):
+    memory = "memory"
+    sqlite = "sqlite"
+    postgres = "postgres"
+
+
 def _version_callback(value: bool) -> None:
     if value:
         console.print(__version__)
@@ -73,6 +86,83 @@ def main(
 def version() -> None:
     """Print the langgraph-wxo version."""
     console.print(__version__)
+
+
+# --- new ---------------------------------------------------------------------
+
+
+def _git_init(target: Path) -> bool:
+    if shutil.which("git") is None:
+        return False
+    try:
+        subprocess.run(
+            ["git", "init", "-q"],
+            cwd=target,
+            capture_output=True,
+            timeout=30,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return True
+
+
+@app.command()
+def new(  # noqa: PLR0913 - CLI options map 1:1 to user-facing flags
+    name: Annotated[str, typer.Argument(help="Project name (also the agent name).")],
+    template: Annotated[
+        TemplateChoice, typer.Option("--template", help="Template to scaffold.")
+    ] = TemplateChoice.react_tools,
+    checkpointer: Annotated[
+        CheckpointerChoice, typer.Option("--checkpointer", help="Checkpointer type.")
+    ] = CheckpointerChoice.memory,
+    model: Annotated[
+        str, typer.Option("--model", help="Model id/alias for templates.")
+    ] = DEFAULT_MODEL_ALIAS,
+    directory: Annotated[
+        Path | None, typer.Option("--dir", help="Target directory (default: ./<name>).")
+    ] = None,
+    no_git: Annotated[bool, typer.Option("--no-git", help="Do not initialize a git repo.")] = False,
+) -> None:
+    """Scaffold a new WxO-importable LangGraph project."""
+    target = (directory or Path(name)).resolve()
+    if target.exists() and any(target.iterdir()):
+        console.print(f"[bold red]error:[/bold red] target directory is not empty: {target}")
+        raise typer.Exit(EXIT_DIR_EXISTS)
+
+    variables: dict[str, object] = {
+        "name": name,
+        "checkpointer": checkpointer.value,
+        "model": model,
+    }
+    try:
+        result = render_template(template.value, target, variables)
+    except UnknownTemplateError as exc:
+        console.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(EXIT_UNKNOWN_TEMPLATE) from exc
+    except TemplateError as exc:
+        console.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(EXIT_DIR_EXISTS) from exc
+
+    git_ok = False if no_git else _git_init(target)
+
+    table = Table(title=f"Created {name}", show_header=True, header_style="bold")
+    table.add_column("File")
+    for path in result.files:
+        table.add_row(str(path.relative_to(target)))
+    console.print(table)
+
+    console.print(f"\n[green]✓[/green] scaffolded [bold]{template.value}[/bold] in {target}")
+    if not no_git:
+        console.print(
+            f"[dim]git: {'initialized' if git_ok else 'skipped (git not available)'}[/dim]"
+        )
+    console.print("\n[bold]Next steps:[/bold]")
+    console.print(f"  cd {target}")
+    console.print("  lgwxo validate")
+    console.print('  lgwxo run --message "hi"')
+    if result.manifest.post_render:
+        console.print(f"\n[dim]{result.manifest.post_render}[/dim]")
 
 
 # --- validate / doctor -------------------------------------------------------

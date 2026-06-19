@@ -1,0 +1,42 @@
+# {{ name }}
+
+A ReAct-style LangGraph agent for IBM watsonx Orchestrate (native package
+import), scaffolded with
+[langgraph-wxo](https://github.com/bharatgrep/langgraph-wxo).
+
+It demonstrates the two things that trip people up on the WxO import path:
+
+1. **The factory contract.** `agent.py` exposes
+   `create_agent(config: RunnableConfig)` returning an **uncompiled**
+   `StateGraph`. WxO compiles it — calling `.compile()` here would break import.
+2. **Injected credentials.** The model is reached through the governed watsonx
+   **Model Gateway**. WxO injects the gateway credential as
+   `watsonx_gateway_api_key` (the `{app_id}_{credential_type}` convention), not
+   from a local `.env`. The connection is declared under `connections:` in
+   `agent.yaml`.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `agent.py` | The factory + a calculator tool and a stubbed HTTP tool. |
+| `watsonx_model.py` | Governed `make_watsonx_chat` helper (gateway + offline stub). |
+| `agent.yaml` | Metadata, entrypoint, checkpointer, declared connection. |
+| `requirements.txt` | Pins `langgraph>=0.6.0`. |
+
+## Local workflow
+
+```bash
+lgwxo validate            # check against the import contract (expect 0 errors)
+lgwxo run --message "hi"  # run one turn locally with mock credentials (offline)
+```
+
+`lgwxo run` never calls the real model: it sets `LGWXO_EMULATE=1`, so
+`make_watsonx_chat` returns a deterministic offline stub.
+
+## WxO limitations to remember
+
+- In-package tools are read-only inside WxO and cannot be reused as WxO tools.
+- The agent cannot use native WxO agents as collaborators.
+- State is lost between turns without a configured checkpointer.
+- Experimental; Python-only; commercial AWS / IBM Cloud regions only.

@@ -1,0 +1,6 @@
+name = "minimal"
+description = "Smallest valid WxO-importable LangGraph agent (echo, no LLM)."
+post_render = "Run 'lgwxo validate' then 'lgwxo run --message \"hi\"'."
+
+[variables]
+description = "A minimal echo agent."

@@ -1,0 +1,81 @@
+"""ReAct-style LangGraph agent for watsonx Orchestrate (native package import).
+
+Contract reminders (enforced by ``lgwxo validate``):
+* the factory accepts a ``RunnableConfig`` and returns an *uncompiled* ``StateGraph``
+* never call ``.compile()`` — WxO compiles the graph for you
+* credentials arrive as injected env vars named ``{app_id}_{credential_type}``
+  (here: ``watsonx_gateway_api_key``), never from a local ``.env`` in production
+"""
+
+from __future__ import annotations
+
+import ast
+import operator
+import os
+
+from langchain_core.runnables.config import RunnableConfig
+from langchain_core.tools import tool
+from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
+
+from watsonx_model import make_watsonx_chat
+
+MODEL_ID = "{{ model }}"
+
+_ALLOWED_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Pow: operator.pow,
+    ast.USub: operator.neg,
+}
+
+
+def _safe_eval(node: ast.AST) -> float:
+    if isinstance(node, ast.Expression):
+        return _safe_eval(node.body)
+    if isinstance(node, ast.Constant) and isinstance(node.value, int | float):
+        return float(node.value)
+    if isinstance(node, ast.BinOp) and type(node.op) in _ALLOWED_OPERATORS:
+        return _ALLOWED_OPERATORS[type(node.op)](_safe_eval(node.left), _safe_eval(node.right))
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _ALLOWED_OPERATORS:
+        return _ALLOWED_OPERATORS[type(node.op)](_safe_eval(node.operand))
+    raise ValueError("unsupported expression")
+
+
+@tool
+def calculator(expression: str) -> str:
+    """Evaluate a basic arithmetic expression, e.g. '2 + 2 * 3'."""
+    try:
+        return str(_safe_eval(ast.parse(expression, mode="eval")))
+    except (ValueError, SyntaxError, ZeroDivisionError) as exc:
+        return f"error: {exc}"
+
+
+@tool
+def http_get(url: str) -> str:
+    """Stubbed HTTP GET. Replace with a real call backed by a WxO connection."""
+    return f"[stub] would GET {url}"
+
+
+TOOLS = [calculator, http_get]
+
+
+def create_agent(config: RunnableConfig) -> StateGraph:
+    """Build and return the uncompiled ReAct agent graph."""
+    # WxO injects the gateway credential under the declared connection key.
+    api_key = os.environ.get("watsonx_gateway_api_key")
+    model = make_watsonx_chat(MODEL_ID, api_key=api_key).bind_tools(TOOLS)
+
+    def agent_node(state: MessagesState) -> dict[str, list]:
+        response = model.invoke(state["messages"], config=config)
+        return {"messages": [response]}
+
+    workflow = StateGraph(MessagesState)
+    workflow.add_node("agent", agent_node)
+    workflow.add_node("tools", ToolNode(TOOLS))
+    workflow.add_edge(START, "agent")
+    workflow.add_conditional_edges("agent", tools_condition)
+    workflow.add_edge("tools", "agent")
+    return workflow

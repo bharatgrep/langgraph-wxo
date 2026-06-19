@@ -1,0 +1,6 @@
+name = "react-tools"
+description = "ReAct-style agent with example tools and a governed watsonx model."
+post_render = "Configure the 'watsonx_gateway' connection in WxO, then import."
+
+[variables]
+description = "A ReAct agent with example tools, governed by the watsonx Model Gateway."

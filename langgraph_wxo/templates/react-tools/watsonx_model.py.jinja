@@ -1,0 +1,65 @@
+"""Governed model helper: a ``ChatWatsonx`` via the watsonx.ai Model Gateway.
+
+The gateway is provider-agnostic (Granite, OpenAI, Anthropic, NVIDIA, ... via an
+OpenAI-compatible interface) and governed by watsonx Orchestrate. Credentials are
+read from the WxO-injected connection keys, falling back to documented env vars
+for local development.
+
+When ``lgwxo run`` executes this agent it sets ``LGWXO_EMULATE=1``; in that mode
+this helper returns a deterministic offline stub so a turn can run without any
+network access or real credentials.
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Any
+
+from langchain_core.messages import AIMessage
+
+# TODO(spec): confirm gateway endpoint/field names and a region-stable model alias
+# for the targeted ADK version.
+_GATEWAY_URL_KEYS = ("watsonx_gateway_url", "WATSONX_GATEWAY_URL", "WATSONX_URL")
+_GATEWAY_KEY_KEYS = ("watsonx_gateway_api_key", "WATSONX_GATEWAY_API_KEY", "WATSONX_APIKEY")
+
+
+def _first_env(keys: tuple[str, ...]) -> str | None:
+    for key in keys:
+        value = os.environ.get(key)
+        if value:
+            return value
+    return None
+
+
+class _EmulatorChatModel:
+    """Deterministic offline stand-in used only during ``lgwxo run``."""
+
+    def bind_tools(self, tools: Any, **kwargs: Any) -> "_EmulatorChatModel":
+        return self
+
+    def invoke(self, messages: Any, config: Any = None, **kwargs: Any) -> AIMessage:
+        return AIMessage(content="[emulated] Hello! (no model is called during lgwxo run)")
+
+
+def make_watsonx_chat(
+    model: str | None = None,
+    *,
+    api_key: str | None = None,
+    config: Any = None,
+) -> Any:
+    """Return a chat model configured for the watsonx Model Gateway.
+
+    In emulation mode (``LGWXO_EMULATE=1``) returns an offline stub instead.
+    """
+    if os.environ.get("LGWXO_EMULATE") == "1":
+        return _EmulatorChatModel()
+
+    from langchain_ibm import ChatWatsonx
+
+    url = _first_env(_GATEWAY_URL_KEYS)
+    apikey = api_key or _first_env(_GATEWAY_KEY_KEYS)
+    return ChatWatsonx(
+        model_id=model or "{{ model }}",
+        url=url,
+        apikey=apikey,
+    )
