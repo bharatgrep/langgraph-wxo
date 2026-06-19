@@ -59,5 +59,11 @@ warn_unused_ignores = true
 disallow_untyped_decorators = false
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=langgraph_wxo --cov-report=term-missing"
+addopts = "-q --cov=langgraph_wxo --cov-report=term-missing --cov-fail-under=85"
 testpaths = ["tests"]
+
+[tool.coverage.run]
+# _child.py runs in a separate interpreter (the emulator subprocess), so the
+# coverage tool cannot measure it here; it is exercised end-to-end by the
+# emulator integration tests instead.
+omit = ["langgraph_wxo/emulate/_child.py"]

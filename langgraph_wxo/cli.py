@@ -24,8 +24,9 @@ from rich.table import Table
 
 from .compat import DEFAULT_MODEL_ALIAS, MIN_LANGGRAPH_VERSION, get_spec, known_spec_versions
 from .config import LoadError, load_project
+from .emulate import RunResult, load_mock_creds, run_agent
 from .templates import TemplateError, UnknownTemplateError, render_template
-from .validate import Report, Severity, run_all
+from .validate import RULES, Report, Severity, run_all
 from .validate.rules.limits import ELIGIBILITY_MESSAGE
 from .version import __version__
 
@@ -249,6 +250,74 @@ def doctor(
 ) -> None:
     """Alias for ``validate``."""
     _validate_impl(path, target_spec, strict, json_out)
+
+
+# --- run ---------------------------------------------------------------------
+
+
+def _resolve_message(message: str | None, input_file: Path | None) -> str:
+    if input_file is not None:
+        data = jsonlib.loads(input_file.read_text(encoding="utf-8"))
+        if isinstance(data, dict) and "message" in data:
+            return str(data["message"])
+        if isinstance(data, dict) and isinstance(data.get("messages"), list) and data["messages"]:
+            last = data["messages"][-1]
+            return str(last.get("content", last) if isinstance(last, dict) else last)
+        return str(data)
+    return message or "hi"
+
+
+def _render_run(result: RunResult) -> None:
+    for msg in result.transcript:
+        role = msg.get("type", "?")
+        console.print(f"[bold]{role}[/bold]: {msg.get('content', '')}")
+    if result.final_state_keys:
+        console.print(f"\n[dim]final state keys: {', '.join(result.final_state_keys)}[/dim]")
+    for notice in result.notices:
+        console.print(f"[yellow]notice:[/yellow] {notice}")
+
+
+@app.command()
+def run(
+    path: _PathOpt = Path("."),
+    message: Annotated[str | None, typer.Option("--message", "-m", help="User message.")] = None,
+    input_file: Annotated[
+        Path | None, typer.Option("--input", help="JSON input file ({'message': ...}).")
+    ] = None,
+    mock_creds: Annotated[
+        Path | None, typer.Option("--mock-creds", help="JSON map of extra mock credentials.")
+    ] = None,
+    stream: Annotated[bool, typer.Option("--stream/--no-stream", help="Stream output.")] = False,
+) -> None:
+    """Run the agent locally the way WxO will (compile + inject mock creds + 1 turn)."""
+    try:
+        project = load_project(path)
+    except LoadError as exc:
+        console.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(EXIT_FINDINGS) from exc
+
+    extra = load_mock_creds(mock_creds) if mock_creds is not None else None
+    text = _resolve_message(message, input_file)
+
+    result = run_agent(project, text, extra_creds=extra)
+
+    if result.status == "ok":
+        _render_run(result)
+        raise typer.Exit(EXIT_OK)
+
+    if result.status == "contract":
+        rule_id = result.finding_id or "LGWXO000"
+        title = RULES[rule_id].title if rule_id in RULES else "contract violation"
+        console.print(f"[bold red]{rule_id}[/bold red] {title} — {result.message}")
+        raise typer.Exit(EXIT_FINDINGS)
+
+    # runtime / error
+    console.print("[bold red]agent runtime error[/bold red]")
+    if result.message:
+        console.print(result.message)
+    if result.stderr:
+        console.print(f"[dim]{result.stderr}[/dim]")
+    raise typer.Exit(EXIT_RUNTIME)
 
 
 # --- check-env ---------------------------------------------------------------
