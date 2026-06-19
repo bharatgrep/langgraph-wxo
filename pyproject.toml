@@ -1,0 +1,63 @@
+[project]
+name = "langgraph-wxo"
+version = "0.0.0"
+description = "Build LangGraph agents and deploy them to IBM watsonx Orchestrate (native import). Community project, not affiliated with IBM."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "bharatgrep" }]
+keywords = ["langgraph", "watsonx", "watsonx-orchestrate", "agents", "llm", "cli"]
+dependencies = [
+  "typer>=0.12",
+  "rich>=13",
+  "pydantic>=2.7",
+  "ruamel.yaml>=0.18",
+  "jinja2>=3.1",
+  "packaging>=24.0",
+]
+
+[project.optional-dependencies]
+# pulled in by generated projects / for `run` and `model` helper testing
+agent = ["langgraph>=0.6.0", "langchain-core>=0.3", "langchain-ibm>=0.3"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "mypy>=1.10",
+  "ruff>=0.5",
+  "pre-commit>=3.7",
+]
+
+[project.scripts]
+lgwxo = "langgraph_wxo.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/bharatgrep/langgraph-wxo"
+Issues = "https://github.com/bharatgrep/langgraph-wxo/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["langgraph_wxo"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "PL"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+# Typer's @app.command()/@app.callback() decorators are flagged as "untyped"
+# under strict mode; disable just this check rather than littering ignores.
+disallow_untyped_decorators = false
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=langgraph_wxo --cov-report=term-missing"
+testpaths = ["tests"]
