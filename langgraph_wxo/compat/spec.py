@@ -5,8 +5,7 @@ Where a detail is not independently verifiable from IBM's published docs at the
 time of writing, it is encoded here with a ``# TODO(spec)`` marker rather than
 guessed silently elsewhere in the codebase.
 
-Default target: **ADK 2.7.x / import spec ``v1``** (see TECHNICAL_SPECIFICATION
-§5, §16, §19 OQ-1).
+Default target: **ADK 2.7.x / import spec ``v1``**.
 """
 
 from __future__ import annotations

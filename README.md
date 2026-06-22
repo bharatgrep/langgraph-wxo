@@ -62,7 +62,7 @@ lgwxo validate --strict          # CI gate: warnings become errors
 lgwxo run --message "hi"         # contract violations fail with the matching ID
 ```
 
-## Commands (Phase 1 MVP)
+## Commands
 
 | Command | Purpose |
 |---|---|
@@ -71,8 +71,8 @@ lgwxo run --message "hi"         # contract violations fail with the matching ID
 | `lgwxo run` | Run one turn locally (compile + inject mock creds + invoke). |
 | `lgwxo check-env` | Report Python/langgraph versions and eligibility reminders. |
 
-The connections sub-app, `package`, `import`, and the `governed-rag` template land
-in Phase 2+ (see `PRODUCT_ROADMAP.md`).
+The connections sub-app, `package`, `import`, and the `governed-rag` template are
+planned for a future release.
 
 ## The WxO native-import contract (what the tool enforces)
 

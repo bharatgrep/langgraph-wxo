@@ -1,8 +1,8 @@
 name = "governed-rag"
-description = "Retrieval flow with an external-data connection and postgres checkpointer (Phase 2)."
-post_render = "Planned for Phase 2 — see PRODUCT_ROADMAP.md."
+description = "Retrieval flow with an external-data connection and postgres checkpointer."
+post_render = "Planned for a future release."
 
-# NOTE: This is a Phase 2 placeholder manifest. The template source files are not
-# shipped yet; `lgwxo new` only offers `react-tools` and `minimal` in the MVP.
+# NOTE: Placeholder manifest. The template source files are not shipped yet;
+# `lgwxo new` currently offers `react-tools` and `minimal`.
 [variables]
 description = "A governed retrieval-augmented agent."

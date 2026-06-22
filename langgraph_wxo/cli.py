@@ -38,7 +38,7 @@ app = typer.Typer(
 
 console = Console()
 
-# Exit codes (kept consistent with TECHNICAL_SPECIFICATION §7).
+# Exit codes (stable contract; scripts and CI branch on these).
 EXIT_OK = 0
 EXIT_FINDINGS = 1
 EXIT_DIR_EXISTS = 2
