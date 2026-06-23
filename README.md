@@ -5,15 +5,12 @@
 
 ![status: pre-release](https://img.shields.io/badge/status-pre--release-orange)
 
-`langgraph-wxo` is a thin developer-experience CLI (`lgwxo`) that does two things,
-which are also its two demo angles:
+`langgraph-wxo` is a developer-experience CLI (`lgwxo`) that does two things:
 
-- **Velocity** — scaffold a correct, importable LangGraph-on-WxO project in one
+- **Velocity** - scaffold a correct, importable LangGraph-on-WxO project with one
   command.
-- **Safety** — statically validate a project against the import contract, and run
-  it locally the way WxO will, *before* you upload.
-
-It tracks (never forks) LangGraph and the WxO import spec.
+- **Safety** - statically validate an existing LangGraph project against the import contract, and run
+  it locally the way WxO will, before you upload.
 
 ## Disclaimer
 
@@ -30,9 +27,9 @@ uvx langgraph-wxo --version      # run without installing
 pipx install langgraph-wxo
 ```
 
-## Quickstart (5 minutes, both angles)
+## Quickstart (5 minutes)
 
-### 1. Velocity — scaffold a working agent
+### 1. Development Velocity - scaffold a working agent
 
 ```bash
 lgwxo new demo --template react-tools
@@ -46,10 +43,10 @@ that returns an *uncompiled* `StateGraph`, a pinned `requirements.txt`, an
 `agent.yaml` with the entrypoint/checkpointer/connection, and a governed watsonx
 model helper.
 
-### 2. Safety — break it three ways, catch each locally
+### 2. Deployment Safety - break it three ways, catch each locally
 
-The import contract has sharp edges. `validate` and `run` catch them with a precise
-`LGWXO###` finding and a fix hint — no failed uploads:
+The WxO import contract has sharp edges. `validate` and `run` catch them with a precise
+`LGWXO###` finding and a fix hint - so that you get any failed uploads:
 
 | Break | Caught as |
 |---|---|
@@ -59,7 +56,7 @@ The import contract has sharp edges. `validate` and `run` catch them with a prec
 
 ```bash
 lgwxo validate --strict          # CI gate: warnings become errors
-lgwxo run --message "hi"         # contract violations fail with the matching ID
+lgwxo run --message "hi"         # WxO import contract violations fail with the matching ID
 ```
 
 ## Commands
