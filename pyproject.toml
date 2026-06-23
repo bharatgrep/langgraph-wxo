@@ -1,6 +1,6 @@
 [project]
 name = "langgraph-wxo"
-version = "0.0.0"
+dynamic = ["version"]
 description = "Build LangGraph agents and deploy them to IBM watsonx Orchestrate (native import). Community project, not affiliated with IBM."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -40,8 +40,13 @@ Issues = "https://github.com/bharatgrep/langgraph-wxo/issues"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "langgraph_wxo/version.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["langgraph_wxo"]
+# Ship template sources and the typing marker (non-.py package data).
+artifacts = ["langgraph_wxo/templates/**/*.jinja", "langgraph_wxo/templates/**/*.toml", "langgraph_wxo/py.typed"]
 
 [tool.ruff]
 target-version = "py311"
@@ -59,5 +64,11 @@ warn_unused_ignores = true
 disallow_untyped_decorators = false
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=langgraph_wxo --cov-report=term-missing"
+addopts = "-q --cov=langgraph_wxo --cov-report=term-missing --cov-fail-under=85"
 testpaths = ["tests"]
+
+[tool.coverage.run]
+# _child.py runs in a separate interpreter (the emulator subprocess), so the
+# coverage tool cannot measure it here; it is exercised end-to-end by the
+# emulator integration tests instead.
+omit = ["langgraph_wxo/emulate/_child.py"]

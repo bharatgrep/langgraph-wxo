@@ -1,0 +1,26 @@
+# {{ name }}
+
+A minimal LangGraph agent for IBM watsonx Orchestrate (native package import),
+scaffolded with [langgraph-wxo](https://github.com/bharatgrep/langgraph-wxo).
+
+## The import contract (why this looks the way it does)
+
+- `agent.py` exposes a **factory** `create_agent(config: RunnableConfig)` that
+  returns an **uncompiled** `StateGraph`. Do **not** call `.compile()` — WxO does.
+- `requirements.txt` pins `langgraph>=0.6.0`.
+- `agent.yaml` declares `spec_version: v1`, `kind: agent`, `framework: langgraph`,
+  and the `module:function` entrypoint.
+
+## Local workflow
+
+```bash
+lgwxo validate            # check against the import contract
+lgwxo run --message "hi"  # run one turn locally with mock credentials
+```
+
+## WxO limitations to remember
+
+- In-package tools are read-only inside WxO and cannot be reused as WxO tools.
+- The agent cannot use native WxO agents as collaborators.
+- State is lost between turns without a configured checkpointer.
+- Experimental; Python-only; commercial AWS / IBM Cloud regions only.

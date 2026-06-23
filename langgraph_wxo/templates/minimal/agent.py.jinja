@@ -1,0 +1,27 @@
+"""Minimal WxO-importable LangGraph agent: echoes the user's last message.
+
+Contract reminders (enforced by ``lgwxo validate``):
+* the factory accepts a ``RunnableConfig`` and returns an *uncompiled* ``StateGraph``
+* never call ``.compile()`` here — watsonx Orchestrate compiles the graph for you
+"""
+
+from __future__ import annotations
+
+from langchain_core.messages import AIMessage
+from langchain_core.runnables.config import RunnableConfig
+from langgraph.graph import END, START, MessagesState, StateGraph
+
+
+def echo_node(state: MessagesState) -> dict[str, list[AIMessage]]:
+    last = state["messages"][-1]
+    text = getattr(last, "content", "")
+    return {"messages": [AIMessage(content=f"echo: {text}")]}
+
+
+def create_agent(config: RunnableConfig) -> StateGraph:
+    """Build and return the uncompiled agent graph."""
+    workflow = StateGraph(MessagesState)
+    workflow.add_node("echo", echo_node)
+    workflow.add_edge(START, "echo")
+    workflow.add_edge("echo", END)
+    return workflow

@@ -54,3 +54,8 @@ coverage.xml
 # OS
 .DS_Store
 Thumbs.db
+
+# Docs
+plan/
+learn/
+py-grasp/
