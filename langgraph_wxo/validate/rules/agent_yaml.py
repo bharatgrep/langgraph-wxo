@@ -6,6 +6,8 @@ from ...compat import ImportSpec
 from ...config import ProjectConfig, split_entrypoint
 from ..findings import Finding, make_finding
 
+_NATIVE_PLACEHOLDER_KEYS = frozenset({"instructions", "llm", "style", "tools"})
+
 
 def check(project: ProjectConfig, spec: ImportSpec) -> list[Finding]:
     findings: list[Finding] = []
@@ -113,14 +115,17 @@ def check(project: ProjectConfig, spec: ImportSpec) -> list[Finding]:
 
     # LGWXO016 — unknown top-level fields for the target spec (drift guard)
     for key in project.raw:
-        if str(key) not in spec.known_agent_keys:
+        key_name = str(key)
+        if agent.kind != spec.kind_value and key_name in _NATIVE_PLACEHOLDER_KEYS:
+            continue
+        if key_name not in spec.known_agent_keys:
             findings.append(
                 make_finding(
                     "LGWXO016",
                     name,
-                    f"Unknown field {str(key)!r} for spec {spec.version}.",
+                    f"Unknown field {key_name!r} for spec {spec.version}.",
                     "Remove the field or target a spec version that supports it.",
-                    line=line(str(key)),
+                    line=line(key_name),
                 )
             )
 

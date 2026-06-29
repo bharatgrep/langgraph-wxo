@@ -32,12 +32,37 @@ def test_lgwxo022_unpinned_dep(tmp_path: Path) -> None:
     assert "LGWXO022" in finding_ids(tmp_path)
 
 
-def test_lgwxo040_no_checkpointer(tmp_path: Path) -> None:
+CUSTOM_STATE_PY = """\
+from typing import TypedDict
+
+from langchain_core.runnables.config import RunnableConfig
+from langgraph.graph import StateGraph
+
+
+class AgentState(TypedDict):
+    messages: list[str]
+    turn_count: int
+
+
+def create_agent(config: RunnableConfig) -> StateGraph:
+    return StateGraph(AgentState)
+"""
+
+
+def test_lgwxo040_custom_state_without_checkpointer(tmp_path: Path) -> None:
+    yaml = "\n".join(
+        ln for ln in GOOD_AGENT_YAML.splitlines() if ln not in {"checkpointer:", "  type: memory"}
+    )
+    write_project(tmp_path, agent_yaml=yaml, agent_py=CUSTOM_STATE_PY)
+    assert "LGWXO040" in finding_ids(tmp_path)
+
+
+def test_messages_only_state_without_checkpointer_does_not_warn(tmp_path: Path) -> None:
     yaml = "\n".join(
         ln for ln in GOOD_AGENT_YAML.splitlines() if ln not in {"checkpointer:", "  type: memory"}
     )
     write_project(tmp_path, agent_yaml=yaml)
-    assert "LGWXO040" in finding_ids(tmp_path)
+    assert "LGWXO040" not in finding_ids(tmp_path)
 
 
 def test_lgwxo041_postgres_without_key(tmp_path: Path) -> None:
