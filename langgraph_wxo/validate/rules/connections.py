@@ -64,10 +64,12 @@ def check(
                     module_name,
                     f"Code reads {key!r}, but WxO injects connection "
                     f"'{related.app_id}' as {expected!r}.",
-                    f"Read os.environ[{expected!r}] to match the declared connection.",
+                    f"Read {expected!r} from RunnableConfig configurable credentials.",
                     line=read.line,
                 )
             )
+        elif read.source == "config":
+            continue
         else:
             findings.append(
                 make_finding(
@@ -79,6 +81,21 @@ def check(
                     line=read.line,
                 )
             )
+
+    if analysis.dotenv_loads and any(
+        read.source == "env" and _looks_like_credential(read.key)
+        for read in analysis.credential_reads
+    ):
+        findings.append(
+            make_finding(
+                "LGWXO033",
+                module_name,
+                "Code loads local .env files for credentials; WxO runtime does not ship "
+                "developer .env files.",
+                "Use WxO connections and read injected credentials from RunnableConfig.",
+                line=analysis.dotenv_loads[0],
+            )
+        )
 
     # LGWXO032 — declared but never read
     for conn in declared:

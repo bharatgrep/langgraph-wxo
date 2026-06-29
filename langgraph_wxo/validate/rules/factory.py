@@ -89,4 +89,17 @@ def check(
             )
         )
 
+    # LGWXO053 — concrete attempt to use WxO platform APIs from inside LangGraph
+    if analysis.wxo_platform_access:
+        findings.append(
+            make_finding(
+                "LGWXO053",
+                module_name,
+                "Code imports WxO runtime platform APIs from inside the LangGraph package.",
+                "Keep imported LangGraph agents as leaf collaborators; route WxO tools, "
+                "agents, and knowledge bases from a native WxO parent.",
+                line=analysis.wxo_platform_line,
+            )
+        )
+
     return findings

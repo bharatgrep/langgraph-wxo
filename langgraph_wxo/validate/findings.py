@@ -83,6 +83,7 @@ RULES: dict[str, RuleMeta] = {
         RuleMeta("LGWXO030", W, "Code reads an undeclared credential"),
         RuleMeta("LGWXO031", E, "Credential key mismatch"),
         RuleMeta("LGWXO032", INF, "Declared connection unused"),
+        RuleMeta("LGWXO033", W, "Local .env credential loading"),
         # Checkpointer / state
         RuleMeta("LGWXO040", W, "Custom state without a checkpointer"),
         RuleMeta("LGWXO041", E, "postgres checkpointer without connection_string_key"),
@@ -90,6 +91,7 @@ RULES: dict[str, RuleMeta] = {
         RuleMeta("LGWXO050", INF, "In-package tools are read-only in WxO"),
         RuleMeta("LGWXO051", INF, "Cannot use native WxO agents as collaborators"),
         RuleMeta("LGWXO052", INF, "Python-only / commercial-cloud-only / experimental"),
+        RuleMeta("LGWXO053", W, "Code attempts WxO platform access"),
     ]
 }
 

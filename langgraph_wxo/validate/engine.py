@@ -38,7 +38,7 @@ def run_all(
     findings: list[Finding] = []
     findings += agent_yaml.check(project, spec)
     findings += deps.check(project, spec)
-    findings += checkpointer.check(project, spec)
+    findings += checkpointer.check(project, spec, analysis)
     findings += factory.check(project, spec, analysis)
     findings += connections.check(project, spec, analysis)
     findings += limits.check(project, spec)

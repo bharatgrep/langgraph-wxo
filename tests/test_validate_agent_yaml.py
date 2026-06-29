@@ -64,3 +64,18 @@ def test_lgwxo016_unknown_field(tmp_path: Path) -> None:
     write_project(tmp_path, agent_yaml=yaml)
     ids = finding_ids(tmp_path)
     assert "LGWXO016" in ids
+
+
+def test_placeholder_native_fields_do_not_add_unknown_field_noise(tmp_path: Path) -> None:
+    yaml = """\
+spec_version: v1
+kind: native
+name: demo_agent
+description: Placeholder.
+instructions: Echo messages.
+llm: watsonx/ibm/granite-3-8b-instruct
+style: default
+tools: []
+"""
+    write_project(tmp_path, agent_yaml=yaml)
+    assert "LGWXO016" not in finding_ids(tmp_path)
